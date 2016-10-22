@@ -2,7 +2,7 @@ import sys
 import socket
 import select
 import string
-import inet
+from inet import PORT, RX_BUF_SZ, SERVER
 
 def prompt():
     sys.stdout.write('<You> ')
@@ -15,52 +15,47 @@ if __name__ == "__main__":
         ERASE_LINE    = '\x1b[2K'
     
         while True:
-            response = raw_input('\r' + '<SYSTEM> ' + 'Would you like to connect to the chat room? Enter (Y)es or (N)o: ')
+            response = raw_input(SERVER + 'Would you like to connect to the chat room? Enter (Y)es or (N)o: ')
             if len(response) > 0:
                 response = response.lower()[0]
             else:
-                print('\r' + '<SYSTEM> ' + 'Invalid input.')
+                print(SERVER + 'Invalid input.')
                 continue
             if response == 'y':
-                print('\r' + '<SYSTEM> ' + 'Connecting...')
+                print(SERVER + 'Connecting...')
                 break
             elif response == 'n':
-                print('\r' + '<SYSTEM> ' + 'Exiting...')
+                print(SERVER + 'Exiting...')
                 sys.exit(0)
             else:
-                print('\r' + '<SYSTEM> ' + 'Invalid input.') 
+                print(SERVER + 'Invalid input.') 
                 continue
          
         host = socket.gethostname()
-        port = int(inet.PORT)
+        port = int(PORT)
     
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(2)
+        s.settimeout(30)
          
         try :
             s.connect((host, port))
         except :
-            print('\r' + '<SYSTEM> ' + 'Unable to connect')
+            print(SERVER + 'Unable to connect')
             sys.exit()
          
-        # print('Connected to remote host. Start sending messages')
-        print('\r' + '<SYSTEM> ' + 'Connected to chat room.')
-        message = s.recv(inet.RX_BUF_SZ)
-    	name = raw_input(message)
-    	s.send(name)
-        '''
-        while True:
-        	message = s.recv(inet.RX_BUF_SZ)
-        	name = raw_input(message)
-        	s.send(name)
-    		response = s.recv(inet.RX_BUF_SZ)
+        print(SERVER + 'Connected to chat room.')        
+        message = s.recv(RX_BUF_SZ)
+        name = raw_input(message)
+        s.send(name)
 
-    		if response == 'valid':
-    			break
-    		else:
-    			print('\r' + response)
-    			continue
-    	'''
+        while True:
+            response = s.recv(RX_BUF_SZ)
+            if response == 'valid':
+                break
+            else:
+                name = raw_input(response)
+                s.send(name)
+                continue        
 
         prompt()
          
@@ -72,9 +67,10 @@ if __name__ == "__main__":
             for sock in rx_sockets:
                 #incoming message from remote server
                 if sock == s:
-                    data = sock.recv(inet.RX_BUF_SZ)
+                    data = sock.recv(RX_BUF_SZ)
                     if not data :
-                        print('\r' + '<SYSTEM> ' + 'Disconnected from chat server')
+                        print(ERASE_LINE + CURSOR_UP_ONE)
+                        print(SERVER + 'The chat room has closed.')
                         sys.exit()
                     else :
                         #print data
@@ -88,5 +84,5 @@ if __name__ == "__main__":
                     s.send(msg)
                     prompt()
     except KeyboardInterrupt:
-        print('\r' + '<SYSTEM> ' + 'KeyboardInterrupt bitches')
+        print(SERVER + 'KeyboardInterrupt bitches')
                 

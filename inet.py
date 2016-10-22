@@ -1,2 +1,3 @@
 PORT      = 5000
 RX_BUF_SZ = 65536
+SERVER    = '<SYSTEM> '
