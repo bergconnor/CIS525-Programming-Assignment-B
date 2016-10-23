@@ -16,18 +16,13 @@ class ChatClient(asynchat.async_chat):
         self.buffer = []
  
     def collect_incoming_data(self, data):
-        if int(data) == CODE:
-            self.handle_server_message()
-        else:
+        if data:
             self.buffer.append(data)
  
     def found_terminator(self):
         msg = ''.join(self.buffer)
         print 'Received:', msg
         self.buffer = []
-
-    def handle_server_message(self):
-        self.push('ACK\n')
  
 client = ChatClient('localhost', 5050)
  

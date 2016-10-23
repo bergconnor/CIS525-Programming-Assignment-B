@@ -23,12 +23,7 @@ class ChatHandler(asynchat.async_chat):
             if hasattr(handler, 'push'):
                 if handler is not self:
                     handler.push(msg + '\n')
-                elif handler is self:
-                    self.get_nickname(msg)
         self.buffer = []
-
-    def get_nickname(self, msg):
-        print msg
  
 class ChatServer(asyncore.dispatcher):
     def __init__(self, host, port):
@@ -44,7 +39,6 @@ class ChatServer(asyncore.dispatcher):
             sock, addr = pair
             print 'Incoming connection from %s' % repr(addr)
             handler = ChatHandler(sock)
-            sock.send(str(CODE))
  
 server = ChatServer('localhost', 5050)
  
