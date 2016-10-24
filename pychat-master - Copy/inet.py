@@ -1,16 +1,16 @@
 import socket, pdb
 
-MAX_CLIENTS = 100
-PORT = 5050
+MAX_USERS = 30
+PORT = 22222
 QUIT_STRING = '<$quit$>'
 
-class Hall:
+class Room_Manager:
     def __init__(self):
         self.rooms = {}
         self.room_user_map = {}
 
     def welcome_new(self, new_user):
-        new_user.socket.sendall(b'Welcome to pychat.\nPlease enter a username:\n')
+        new_user.socket.sendall(b'Welcome to pychat.\nPlease tell us your name:\n')
 
     def list_rooms(self, user):
         
@@ -49,7 +49,7 @@ class Hall:
                     if self.room_user_map[user.name] == room_name:
                         user.socket.sendall(b'You are already in room: ' + room_name.encode())
                         same_room = True
-                    else:
+                    else: # switch
                         old_room = self.room_user_map[user.name]
                         self.rooms[old_room].remove_user(user)
                 if not same_room:

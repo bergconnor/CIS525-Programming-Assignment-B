@@ -1,14 +1,8 @@
 import select, socket, sys
-from inet import Room, Hall, User
+from inet import Room, Room_Manager, User
 import inet
 
-READ_BUFFER = 4096
-
-'''
-if len(sys.argv) < 2:
-    print("Usage: Python3 client.py [hostname]", file = sys.stderr)
-    sys.exit(1)
-'''
+MAX_USERS = 4096
 
 server_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -26,7 +20,7 @@ while True:
     read_sockets, write_sockets, error_sockets = select.select(socket_list, [], [])
     for s in read_sockets:
         if s is server_connection:
-            msg = s.recv(READ_BUFFER)
+            msg = s.recv(MAX_USERS)
             if not msg:
                 print("Server down!")
                 sys.exit(2)
