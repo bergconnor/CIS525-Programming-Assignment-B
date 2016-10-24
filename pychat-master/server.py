@@ -10,7 +10,7 @@ def create_socket(host, port):
     s.setblocking(0)
     s.bind((host, port))
     s.listen(inet.MAX_USERS)
-    print("Now listening...")
+    print('Now listening...')
     return s
 
 host = socket.gethostname()

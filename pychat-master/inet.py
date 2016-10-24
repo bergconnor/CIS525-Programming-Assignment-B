@@ -1,16 +1,20 @@
 import socket, pdb
 
-MAX_USERS = 30
-PORT = 22222
+MAX_USERS = 100
+PORT = 55781
 QUIT_STRING = '<$quit$>'
+SERVER_STRING = '<SYSTEM> '
+ERASE_LINE = '\x1b[2K'
+START_LINE = '\x1b[0G'
 
 class Room_Manager:
     def __init__(self):
         self.rooms = {}
         self.room_user_map = {}
+        self.users = []
 
     def welcome_new(self, new_user):
-        new_user.socket.sendall(b'Welcome to pychat.\nPlease tell us your name:\n')
+        new_user.socket.sendall(b'Enter a username:\n')
 
     def list_rooms(self, user):
         
@@ -21,7 +25,7 @@ class Room_Manager:
         else:
             msg = 'Listing current rooms...\n'
             for room in self.rooms:
-                msg += room + ": " + str(len(self.rooms[room].users)) + " user(s)\n"
+                msg += room + ': ' + str(len(self.rooms[room].users)) + ' user(s)\n'
             user.socket.sendall(msg.encode())
     
     def handle_msg(self, user, msg):
@@ -31,17 +35,25 @@ class Room_Manager:
             + b'[<join> room_name] to join/create/switch to a room\n' \
             + b'[<manual>] to show instructions\n' \
             + b'[<quit>] to quit\n' \
-            + b'Otherwise start typing and enjoy!' \
             + b'\n'
 
-        print(user.name + " says: " + msg)
-        if "name:" in msg:
+        if 'name:' in msg:
             name = msg.split()[1]
-            user.name = name
-            print("New connection from:", user.name)
-            user.socket.sendall(instructions)
+            if name in self.users:
+                get_username = b'Username already taken.\n' \
+                    + b'Enter a username:\n'
+                user.socket.sendall(get_username)
+            elif name == 'you':
+                get_username = b'Invalid username.\n' \
+                    + b'Enter a username:\n'
+                user.socket.sendall(get_username)  
+            else:
+                user.name = name
+                self.users.append(name)
+                print('New connection from:', user.name)
+                user.socket.sendall(instructions)
 
-        elif "<join>" in msg:
+        elif '<join>' in msg:
             same_room = False
             if len(msg.split()) >= 2:
                 room_name = msg.split()[1]
@@ -49,7 +61,7 @@ class Room_Manager:
                     if self.room_user_map[user.name] == room_name:
                         user.socket.sendall(b'You are already in room: ' + room_name.encode())
                         same_room = True
-                    else: # switch
+                    else:
                         old_room = self.room_user_map[user.name]
                         self.rooms[old_room].remove_user(user)
                 if not same_room:
@@ -62,13 +74,13 @@ class Room_Manager:
             else:
                 user.socket.sendall(instructions)
 
-        elif "<list>" in msg:
+        elif '<list>' in msg:
             self.list_rooms(user) 
 
-        elif "<manual>" in msg:
+        elif '<manual>' in msg:
             user.socket.sendall(instructions)
         
-        elif "<quit>" in msg:
+        elif '<quit>' in msg:
             user.socket.sendall(QUIT_STRING.encode())
             self.remove_user(user)
 
@@ -85,7 +97,9 @@ class Room_Manager:
         if user.name in self.room_user_map:
             self.rooms[self.room_user_map[user.name]].remove_user(user)
             del self.room_user_map[user.name]
-        print("User: " + user.name + " has left\n")
+        if user.name in self.users:
+            self.users.remove(user.name)
+        print('<' + user.name + '> ' + 'has disconnected\n')
 
     
 class Room:
@@ -94,22 +108,35 @@ class Room:
         self.name = name
 
     def welcome_new(self, from_user):
-        msg = self.name + " welcomes: " + from_user.name + '\n'
+        unprompt = ERASE_LINE + START_LINE
+        msg = unprompt + '<' + self.name + '> ' + from_user.name + ' joined the room\n'
         for user in self.users:
-            user.socket.sendall(msg.encode())
+            if user is not from_user:
+                user.socket.sendall(msg.encode())
+            else:
+                if len(self.users) == 1:
+                    msg = unprompt + '<' + self.name + '> You created the room\n'
+                else:
+                    msg = unprompt + '<' + self.name + '> You joined the room\n'
+                user.socket.sendall(msg.encode())
     
     def broadcast(self, from_user, msg):
-        msg = from_user.name.encode() + b":" + msg
+        unprompt = ERASE_LINE.encode() + START_LINE.encode()
+        msg = unprompt + b'<' + from_user.name.encode() + b'> ' + msg
         for user in self.users:
-            user.socket.sendall(msg)
+            if user is not from_user:
+                user.socket.sendall(msg)
+            else:
+                user.socket.sendall(START_LINE.encode())
 
     def remove_user(self, user):
         self.users.remove(user)
-        leave_msg = user.name.encode() + b"has left the room\n"
+        unprompt = ERASE_LINE.encode() + START_LINE.encode()
+        leave_msg = unprompt + b'<' + user.name.encode() + b'> has left the room\n'
         self.broadcast(user, leave_msg)
 
 class User:
-    def __init__(self, socket, name = "new"):
+    def __init__(self, socket, name = 'new'):
         socket.setblocking(0)
         self.socket = socket
         self.name = name
