@@ -2,6 +2,7 @@ import asynchat
 import asyncore
 import socket
 import threading
+import sys
 
 from inet import CODE
  
@@ -14,14 +15,28 @@ class ChatClient(asynchat.async_chat):
  
         self.set_terminator('\n')
         self.buffer = []
- 
+
+        while True:
+            while True:
+                try:
+                    name = raw_input(self.socket.recv(1024))
+                    break
+                except:
+                    continue
+            self.socket.send(name)
+            flag = int(self.socket.recv(1024))
+            if flag:
+                continue
+            else:
+                break
+
     def collect_incoming_data(self, data):
         if data:
             self.buffer.append(data)
  
     def found_terminator(self):
         msg = ''.join(self.buffer)
-        print 'Received:', msg
+        print msg
         self.buffer = []
  
 client = ChatClient('localhost', 5050)

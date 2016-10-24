@@ -5,11 +5,13 @@ import socket
 from inet import CODE
  
 chat_room = {}
+usernames = []
+sockets   = []
  
 class ChatHandler(asynchat.async_chat):
     def __init__(self, sock):
         asynchat.async_chat.__init__(self, sock=sock, map=chat_room)
- 
+        self.sock = sock
         self.set_terminator('\n')
         self.buffer = []
  
@@ -18,11 +20,12 @@ class ChatHandler(asynchat.async_chat):
  
     def found_terminator(self):
         msg = ''.join(self.buffer)
-        print 'Received:', msg
         for handler in chat_room.itervalues():
             if hasattr(handler, 'push'):
                 if handler is not self:
-                    handler.push(msg + '\n')
+                    index = sockets.index(str(self.sock))
+                    prompt = '<' + usernames[index] + '>'
+                    handler.push(prompt + ' ' + msg + '\n')
         self.buffer = []
  
 class ChatServer(asyncore.dispatcher):
@@ -39,6 +42,26 @@ class ChatServer(asyncore.dispatcher):
             sock, addr = pair
             print 'Incoming connection from %s' % repr(addr)
             handler = ChatHandler(sock)
+            self.get_username(sock)
+
+    def get_username(self, sock):
+        username_prompt = 'Enter a username: '
+        msg = username_prompt
+        while True:
+            sock.send(msg)
+            while True:
+                try:
+                    name = sock.recv(1024)
+                    break
+                except:
+                    continue
+            if name in usernames:
+                msg = 'This username is already in use.\n' + username_prompt
+                continue
+            else:
+                break
+        usernames.append(name)
+        sockets.append(str(sock))
  
 server = ChatServer('localhost', 5050)
  
